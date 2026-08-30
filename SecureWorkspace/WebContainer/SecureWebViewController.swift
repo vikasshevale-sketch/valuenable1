@@ -149,8 +149,10 @@ public final class SecureWebViewController: UIViewController, WKNavigationDelega
                          decideDestinationUsing response: URLResponse,
                          suggestedFilename: String,
                          completionHandler: @escaping (URL?) -> Void) {
-        let safeName = suggestedFilename.isEmpty ? "download" : suggestedFilename
-        let safeName = safeName.replacingOccurrences(of: "/", with: "_")
+        let initialName = suggestedFilename.isEmpty ? "download" : suggestedFilename
+        let safeName = initialName
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "\\", with: "_")
         let destination = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString + "_" + safeName)
         completionHandler(destination)
