@@ -64,19 +64,39 @@ jobs:
   ipa:
     name: Build signed iOS IPA
     runs-on: macos-latest
-    # A real installable IPA requires Apple signing credentials.
-    if: ${{ github.event_name != 'pull_request' && secrets.IOS_CERTIFICATE_BASE64 != '' && secrets.IOS_CERTIFICATE_PASSWORD != '' && secrets.IOS_PROVISIONING_PROFILE_BASE64 != '' && secrets.IOS_TEAM_ID != '' }}
+    # Secrets cannot be referenced directly in a job-level `if`.
+    # This job runs on push/manual dispatch and skips signing when secrets are absent.
+    if: ${{ github.event_name != 'pull_request' }}
 
     steps:
+      - name: Check signing secrets
+        id: signing
+        env:
+          IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          if [ -n "$IOS_CERTIFICATE_BASE64" ] && [ -n "$IOS_CERTIFICATE_PASSWORD" ] && [ -n "$IOS_PROVISIONING_PROFILE_BASE64" ] && [ -n "$IOS_TEAM_ID" ]; then
+            echo "has_signing=true" >> "$GITHUB_OUTPUT"
+            echo "Apple signing secrets are configured."
+          else
+            echo "has_signing=false" >> "$GITHUB_OUTPUT"
+            echo "Apple signing secrets are not configured; skipping IPA build."
+          fi
+
       - name: Checkout
+        if: steps.signing.outputs.has_signing == 'true'
         uses: actions/checkout@v4
 
       - name: Select Xcode
+        if: steps.signing.outputs.has_signing == 'true'
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
 
       - name: Install signing certificate and provisioning profile
+        if: steps.signing.outputs.has_signing == 'true'
         env:
           IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
@@ -105,6 +125,7 @@ jobs:
           echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
 
       - name: Create ExportOptions.plist for ad-hoc IPA
+        if: steps.signing.outputs.has_signing == 'true'
         env:
           IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
@@ -123,6 +144,7 @@ jobs:
           PLIST
 
       - name: Archive device build
+        if: steps.signing.outputs.has_signing == 'true'
         run: |
           set -euo pipefail
           rm -rf build/device
@@ -137,6 +159,7 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID"
 
       - name: Export IPA
+        if: steps.signing.outputs.has_signing == 'true'
         run: |
           set -euo pipefail
           rm -rf artifacts/ipa
@@ -147,6 +170,7 @@ jobs:
           test -f artifacts/ipa/SecureWorkspace.ipa
 
       - name: Upload IPA artifact
+        if: steps.signing.outputs.has_signing == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: SecureWorkspace-iOS-IPA
