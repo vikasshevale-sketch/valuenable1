@@ -11,33 +11,31 @@
 					<key>kind</key>
 					<string>software-package</string>
 					<key>url</key>
-					<string>https://gmail.com/downloads/SecureWorkspace.ipa</string>
+					<string>https://workspace.valuenable.in/ios/SecureWorkspace.ipa</string>
 				</dict>
 				<dict>
 					<key>kind</key>
 					<string>display-image</string>
 					<key>url</key>
-					<string>https://gmail.com/downloads/image.57x57.png</string>
+					<string>https://workspace.valuenable.in/ios/icon57.png</string>
 				</dict>
 				<dict>
 					<key>kind</key>
 					<string>full-size-image</string>
 					<key>url</key>
-					<string>https://gmail.com/downloads/image.512x512.png</string>
+					<string>https://workspace.valuenable.in/ios/icon512.png</string>
 				</dict>
 			</array>
 			<key>metadata</key>
 			<dict>
 				<key>bundle-identifier</key>
-				<string>com.secureworkspace.app</string>
+				<string>in.valuenable.secureworkspace</string>
 				<key>bundle-version</key>
 				<string>1.0.0</string>
 				<key>kind</key>
 				<string>software</string>
-				<key>platform-identifier</key>
-				<string>com.apple.platform.iphoneos</string>
 				<key>title</key>
-				<string>SecureWorkspace</string>
+				<string>Valuenable Secure</string>
 			</dict>
 		</dict>
 	</array>
