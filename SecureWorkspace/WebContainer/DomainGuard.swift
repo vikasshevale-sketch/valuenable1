@@ -11,9 +11,11 @@ public enum DomainGuard {
 
     private static let allowedHosts: Set<String> = [
         // Valuenable SSO authentication origin
-        "valuenable.ssoone.com",
+        "mail.google.com",
+     
 
         // Google Workspace / Gmail
+           "valuenable.ssoone.com",
         "mail.google.com",
         "chat.google.com",
         "accounts.google.com",
