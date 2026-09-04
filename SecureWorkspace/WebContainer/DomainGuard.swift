@@ -11,11 +11,9 @@ public enum DomainGuard {
 
     private static let allowedHosts: Set<String> = [
         // Valuenable SSO authentication origin
-        "mail.google.com",
-     
+        "valuenable.ssoone.com",
 
         // Google Workspace / Gmail
-           "valuenable.ssoone.com",
         "mail.google.com",
         "chat.google.com",
         "accounts.google.com",
@@ -80,6 +78,23 @@ public enum DomainGuard {
     public static func isURLAllowed(_ url: URL) -> Bool {
         guard url.scheme?.lowercased() == "https" else { return false }
         return isHostAllowed(url.host)
+    }
+
+    /// Schemes Google's own sign-in/session plumbing navigates internally
+    /// and that never represent a real page the user is trying to reach —
+    /// e.g. `storagerelay://` (Google Identity Services' third-party
+    /// storage-access handshake during accounts.google.com sign-in) and
+    /// `about:blank` (a placeholder Google briefly opens before redirecting
+    /// a popup, such as a Meet call opened from Chat, to the real page).
+    /// These are correctly disallowed by isURLAllowed (they're not https),
+    /// but the caller should cancel them quietly rather than surface the
+    /// "Access Restricted" alert, since nothing was actually blocked from
+    /// the user's point of view.
+    private static let benignSentinelSchemes: Set<String> = ["about", "storagerelay", "blob"]
+
+    public static func isBenignSentinelURL(_ url: URL) -> Bool {
+        guard let scheme = url.scheme?.lowercased() else { return true }
+        return benignSentinelSchemes.contains(scheme)
     }
 
     /// Kept for source compatibility. No authentication headers are injected.

@@ -168,7 +168,9 @@ public final class SecureWebViewController: UIViewController, WKNavigationDelega
 
         guard DomainGuard.isURLAllowed(url) else {
             decisionHandler(.cancel)
-            showDomainBlockedAlert(host: url.host)
+            if !DomainGuard.isBenignSentinelURL(url) {
+                showDomainBlockedAlert(host: url.host)
+            }
             return
         }
 
@@ -197,7 +199,9 @@ public final class SecureWebViewController: UIViewController, WKNavigationDelega
                         for navigationAction: WKNavigationAction,
                         windowFeatures: WKWindowFeatures) -> WKWebView? {
         guard let url = navigationAction.request.url, DomainGuard.isURLAllowed(url) else {
-            if let url = navigationAction.request.url { showDomainBlockedAlert(host: url.host) }
+            if let url = navigationAction.request.url, !DomainGuard.isBenignSentinelURL(url) {
+                showDomainBlockedAlert(host: url.host)
+            }
             return nil
         }
 
