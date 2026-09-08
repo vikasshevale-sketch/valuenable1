@@ -1,20 +1,26 @@
 import UIKit
-
-final class SecureContainerView: UIView {
+import SwiftUI
+public final class SecureContainerView: UIView {
+    
     private let secureTextField = UITextField()
-    private var containerView: UIView?
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupSecureContainer()
+    private var secureContainer: UIView?
+    
+    public init(contentView: UIView) {
+        super.init(frame: .zero)
+        setupSecureContainer(with: contentView)
     }
-
+    
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        setupSecureContainer()
     }
-
-    private func setupSecureContainer() {
+    
+    private func setupSecureContainer(with contentView: UIView) {
+        #if targetEnvironment(simulator)
+        // In Simulator/Appetize, attach directly so browser stream is visible
+        addSubview(contentView)
+        contentView.pinToSuperview()
+        #else
+        // On Real iPhones, enforce hardware DRM canvas to black out screenshots & recordings
         secureTextField.isSecureTextEntry = true
         secureTextField.isUserInteractionEnabled = false
         addSubview(secureTextField)
@@ -26,28 +32,53 @@ final class SecureContainerView: UIView {
             secureTextField.leadingAnchor.constraint(equalTo: leadingAnchor),
             secureTextField.trailingAnchor.constraint(equalTo: trailingAnchor)
         ])
-
-        // Safely extract the canvas layer without matching hardcoded internal UIKit strings
-        if let canvas = secureTextField.subviews.first(where: { $0.description.contains("Canvas") }) {
-            canvas.isUserInteractionEnabled = true
-            self.containerView = canvas
-        } else if let fallbackView = secureTextField.subviews.last {
-            fallbackView.isUserInteractionEnabled = true
-            self.containerView = fallbackView
-        } else {
-            self.containerView = self
+        
+        guard let textCanvasView = secureTextField.subviews.first else {
+            addSubview(contentView)
+            contentView.pinToSuperview()
+            return
         }
+        
+        self.secureContainer = textCanvasView
+        textCanvasView.isUserInteractionEnabled = true
+        textCanvasView.addSubview(contentView)
+        contentView.pinToSuperview()
+        #endif
     }
-
-    func addContentView(_ view: UIView) {
-        let target = containerView ?? self
-        target.addSubview(view)
-        view.translatesAutoresizingMaskIntoConstraints = false
+}
+public struct SecureSwiftUIView<Content: View>: UIViewControllerRepresentable {
+    let content: Content
+    
+    public init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+    
+    public func makeUIViewController(context: Context) -> UIViewController {
+        let hostingController = UIHostingController(rootView: content)
+        hostingController.view.backgroundColor = .clear
+        
+        let containerController = UIViewController()
+        let secureView = SecureContainerView(contentView: hostingController.view)
+        
+        containerController.addChild(hostingController)
+        containerController.view.addSubview(secureView)
+        secureView.pinToSuperview()
+        hostingController.didMove(toParent: containerController)
+        
+        return containerController
+    }
+    
+    public func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+}
+extension UIView {
+    func pinToSuperview() {
+        guard let superview = self.superview else { return }
+        self.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            view.topAnchor.constraint(equalTo: target.topAnchor),
-            view.bottomAnchor.constraint(equalTo: target.bottomAnchor),
-            view.leadingAnchor.constraint(equalTo: target.leadingAnchor),
-            view.trailingAnchor.constraint(equalTo: target.trailingAnchor)
+            self.topAnchor.constraint(equalTo: superview.topAnchor),
+            self.bottomAnchor.constraint(equalTo: superview.bottomAnchor),
+            self.leadingAnchor.constraint(equalTo: superview.leadingAnchor),
+            self.trailingAnchor.constraint(equalTo: superview.trailingAnchor)
         ])
     }
 }
