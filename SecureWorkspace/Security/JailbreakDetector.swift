@@ -1,53 +1,36 @@
 import UIKit
-import Foundation
 
-public final class JailbreakDetector {
-    
-    public static func isDeviceCompromised() -> Bool {
+final class JailbreakDetector {
+    static var isJailbroken: Bool {
         #if targetEnvironment(simulator)
         return false
         #else
-        return checkKnownJailbreakFiles() ||
-               checkJailbreakSchemes() ||
-               checkRestrictedDirectoryWrite()
-        #endif
-    }
-    
-    private static func checkKnownJailbreakFiles() -> Bool {
-        let suspiciousPaths = [
+        let paths = [
             "/Applications/Cydia.app",
             "/Library/MobileSubstrate/MobileSubstrate.dylib",
             "/bin/bash",
             "/usr/sbin/sshd",
             "/etc/apt",
-            "/usr/bin/ssh",
-            "/private/var/lib/apt/",
-            "/private/var/lib/cydia",
-            "/Applications/Sileo.app",
-            "/Applications/Zebra.app"
+            "/usr/bin/ssh"
         ]
         
-        for path in suspiciousPaths {
-            if FileManager.default.fileExists(atPath: path) {
-                return true
-            }
+        for path in paths {
+            if FileManager.default.fileExists(atPath: path) { return true }
         }
-        return false
-    }
-    
-    private static func checkJailbreakSchemes() -> Bool {
-        guard let url = URL(string: "cydia://package/com.example.package") else { return false }
-        return UIApplication.shared.canOpenURL(url)
-    }
-    
-    private static func checkRestrictedDirectoryWrite() -> Bool {
-        let path = "/private/jailbreak_test_\(UUID().uuidString).txt"
+        
+        if let file = fopen("/bin/bash", "r") {
+            fclose(file)
+            return true
+        }
+        
+        let testString = "Jailbreak Test"
         do {
-            try "test".write(toFile: path, atomically: true, encoding: .utf8)
-            try? FileManager.default.removeItem(atPath: path)
+            try testString.write(toFile: "/private/jailbreak.test", atomically: true, encoding: .utf8)
+            try FileManager.default.removeItem(atPath: "/private/jailbreak.test")
             return true
         } catch {
             return false
         }
+        #endif
     }
 }

@@ -1,50 +1,25 @@
-import WebKit
+import Foundation
 
-public struct WebSecurityScripts {
-    public static var dlpPreventionScript: WKUserScript {
-        let css = """
-        * {
-            -webkit-touch-callout: none !important;
-            -webkit-user-select: none !important;
-            user-select: none !important;
-        }
-        input, textarea, [contenteditable="true"] {
-            -webkit-user-select: text !important;
-            user-select: text !important;
-        }
-        """
-        
-        let js = """
-        (function() {
-            var style = document.createElement('style');
-            style.type = 'text/css';
-            style.innerHTML = `\(css)`;
-            document.head.appendChild(style);
-            
-            document.addEventListener('copy', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }, true);
-            
-            document.addEventListener('cut', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }, true);
-            
-            document.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-            }, true);
-            
-            document.addEventListener('dragstart', function(e) {
-                e.preventDefault();
-            }, true);
-        })();
-        """
-        
-        return WKUserScript(
-            source: js,
-            injectionTime: .atDocumentEnd,
-            forMainFrameOnly: false
-        )
-    }
+struct WebSecurityScripts {
+    static let dlpScript = """
+        // 1. Disable text copying, cut, selecting, and context menu
+        const style = document.createElement('style');
+        style.type = 'text/css';
+        style.innerHTML = '* { -webkit-user-select: none !important; -webkit-touch-callout: none !important; }';
+        document.head.appendChild(style);
+
+        document.addEventListener('copy', (e) => { e.preventDefault(); e.stopPropagation(); }, true);
+        document.addEventListener('cut', (e) => { e.preventDefault(); e.stopPropagation(); }, true);
+        document.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); }, true);
+        document.addEventListener('dragstart', (e) => { e.preventDefault(); e.stopPropagation(); }, true);
+
+        // 2. Prevent blob and download conversions
+        window.open = function(url) {
+            if (url && (url.startsWith('blob:') || url.includes('download'))) {
+                console.log('Blocked download attempt: ' + url);
+                return null;
+            }
+            return window.location.href = url;
+        };
+    """
 }
