@@ -1,53 +1,53 @@
 import UIKit
 
 final class SecureContainerView: UIView {
-    private let textField = UITextField()
-    private var secureContainer: UIView?
+    private let secureTextField = UITextField()
+    private var containerView: UIView?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        setupSecureHierarchy()
+        setupSecureContainer()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        setupSecureHierarchy()
+        setupSecureContainer()
     }
 
-    private func setupSecureHierarchy() {
-        textField.isSecureTextEntry = true
-        textField.isUserInteractionEnabled = false
-        addSubview(textField)
+    private func setupSecureContainer() {
+        secureTextField.isSecureTextEntry = true
+        secureTextField.isUserInteractionEnabled = false
+        addSubview(secureTextField)
         
-        textField.translatesAutoresizingMaskIntoConstraints = false
+        secureTextField.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            textField.topAnchor.constraint(equalTo: topAnchor),
-            textField.bottomAnchor.constraint(equalTo: bottomAnchor),
-            textField.leadingAnchor.constraint(equalTo: leadingAnchor),
-            textField.trailingAnchor.constraint(equalTo: trailingAnchor)
+            secureTextField.topAnchor.constraint(equalTo: topAnchor),
+            secureTextField.bottomAnchor.constraint(equalTo: bottomAnchor),
+            secureTextField.leadingAnchor.constraint(equalTo: leadingAnchor),
+            secureTextField.trailingAnchor.constraint(equalTo: trailingAnchor)
         ])
 
-        if let container = textField.subviews.first(where: { NSStringFromClass(type(of: $0)).contains("TextCanvasView") || NSStringFromClass(type(of: $0)).contains("LayoutCanvasView") }) {
-            container.isUserInteractionEnabled = true
-            self.secureContainer = container
-        } else if let lastSubview = textField.subviews.last {
-            lastSubview.isUserInteractionEnabled = true
-            self.secureContainer = lastSubview
+        // Safely extract the canvas layer without matching hardcoded internal UIKit strings
+        if let canvas = secureTextField.subviews.first(where: { $0.description.contains("Canvas") }) {
+            canvas.isUserInteractionEnabled = true
+            self.containerView = canvas
+        } else if let fallbackView = secureTextField.subviews.last {
+            fallbackView.isUserInteractionEnabled = true
+            self.containerView = fallbackView
+        } else {
+            self.containerView = self
         }
     }
 
     func addContentView(_ view: UIView) {
-        guard let container = secureContainer else {
-            addSubview(view)
-            return
-        }
-        container.addSubview(view)
+        let target = containerView ?? self
+        target.addSubview(view)
         view.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            view.topAnchor.constraint(equalTo: container.topAnchor),
-            view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            view.trailingAnchor.constraint(equalTo: container.trailingAnchor)
+            view.topAnchor.constraint(equalTo: target.topAnchor),
+            view.bottomAnchor.constraint(equalTo: target.bottomAnchor),
+            view.leadingAnchor.constraint(equalTo: target.leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: target.trailingAnchor)
         ])
     }
 }

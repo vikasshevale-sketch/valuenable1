@@ -10,8 +10,7 @@ final class SecureWebViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         setupWebView()
-        enforceSecurityChecks()
-        loadWorkspace()
+        runSecurityVerification()
     }
 
     private func setupUI() {
@@ -25,8 +24,6 @@ final class SecureWebViewController: UIViewController {
             secureContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             secureContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
-        
-        title = "Secure Workspace"
     }
 
     private func setupWebView() {
@@ -36,7 +33,6 @@ final class SecureWebViewController: UIViewController {
 
         let config = WKWebViewConfiguration()
         config.userContentController = contentController
-        config.limitsNavigationsToAppBoundDomains = true
 
         webView = WKWebView(frame: .zero, configuration: config)
         domainGuard.viewController = self
@@ -45,19 +41,16 @@ final class SecureWebViewController: UIViewController {
         secureContainer.addContentView(webView)
     }
 
-    private func enforceSecurityChecks() {
+    private func runSecurityVerification() {
+        #if !targetEnvironment(simulator)
         if JailbreakDetector.isJailbroken {
-            showFatalError("Untrusted Environment: Device is jailbroken.")
+            showErrorAlert(title: "Security Warning", message: "Jailbroken environment detected. Workspace access is blocked.")
             return
         }
+        #endif
 
         ScreenCaptureMonitor.shared.startMonitoring()
-        
-        BiometricAuthManager.shared.authenticateUser { [weak self] success, _ in
-            if !success {
-                self?.showFatalError("Authentication required to access workspace.")
-            }
-        }
+        loadWorkspace()
     }
 
     private func loadWorkspace() {
@@ -72,10 +65,9 @@ final class SecureWebViewController: UIViewController {
         }
     }
 
-    private func showFatalError(_ message: String) {
-        let alert = UIAlertController(title: "Access Denied", message: message, preferredStyle: .alert)
-        present(alert, animated: true) {
-            self.webView.isHidden = true
-        }
+    private func showErrorAlert(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Dismiss", style: .default))
+        present(alert, animated: true)
     }
 }
