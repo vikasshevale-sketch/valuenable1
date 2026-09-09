@@ -1,0 +1,71 @@
+name: Swift
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  build-simulator:
+    name: Build iOS Simulator .app
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+
+      - name: Build Simulator App
+        run: |
+          xcodebuild build \
+            -project SecureWorkspace.xcodeproj \
+            -scheme SecureWorkspace \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -derivedDataPath derived_data \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Zip Simulator App
+        run: |
+          cd derived_data/Build/Products/Debug-iphonesimulator
+          zip -r SecureWorkspace-Simulator.app.zip SecureWorkspace.app
+
+      - name: Upload Simulator Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SecureWorkspace-iOS-Simulator
+          path: derived_data/Build/Products/Debug-iphonesimulator/SecureWorkspace-Simulator.app.zip
+
+  build-device:
+    name: Build Real Device IPA
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+
+      - name: Build and Package Unsigned Device IPA
+        run: |
+          xcodebuild build \
+            -project SecureWorkspace.xcodeproj \
+            -scheme SecureWorkspace \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath derived_data \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_BUILD_SETTINGS=NO
+
+          mkdir -p Payload
+          cp -r derived_data/Build/Products/Release-iphoneos/SecureWorkspace.app Payload/
+          zip -r SecureWorkspace-RealDevice.ipa Payload
+
+      - name: Upload Real iPhone Device Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SecureWorkspace-RealDevice-Unsigned
+          path: SecureWorkspace-RealDevice.ipa
